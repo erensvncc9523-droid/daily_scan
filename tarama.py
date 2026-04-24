@@ -175,9 +175,22 @@ def sinyal_hesapla(df):
 
     vol_ok    = (vol > sma(vol, VOL_LEN)) if USE_VOLUME else pd.Series(True, index=close.index)
     long_raw  = c1 & c2 & c3 & vol_ok
-    al_sinyal = long_raw & ~long_raw.shift(1).fillna(False)
+    sat_raw   = (K < ema_k) & (K.shift(1) >= ema_k.shift(1))
 
-    return al_sinyal, close
+    # Pozisyon acikken tekrar AL uretmemek icin gunluk AL/SAT akisini takip et.
+    al_sinyal  = pd.Series(False, index=close.index)
+    sat_sinyal = pd.Series(False, index=close.index)
+    pozisyon_acik = False
+
+    for i in range(len(close)):
+        if not pozisyon_acik and bool(long_raw.iloc[i]):
+            al_sinyal.iloc[i] = True
+            pozisyon_acik = True
+        elif pozisyon_acik and bool(sat_raw.iloc[i]):
+            sat_sinyal.iloc[i] = True
+            pozisyon_acik = False
+
+    return al_sinyal, sat_sinyal, close
 
 # ─────────────────────────────────────────────
 # ANA TARAMA
@@ -211,7 +224,7 @@ def tara():
                 hata_listesi.append(hisse)
                 continue
 
-            al, close = sinyal_hesapla(df)
+            al, sat, close = sinyal_hesapla(df)
 
             if len(al) < 3:
                 print("— Yetersiz veri")
@@ -220,6 +233,7 @@ def tara():
             # Son kapanan mum (iloc[-1]) — günlük periyotta mum kapanmış olur
             # Tarama akşam yapıldığı için son mum kesinleşmiş
             son_al = bool(al.iloc[-1])
+            son_sat = bool(sat.iloc[-1])
 
             if son_al:
                 sinyal_tarihi = df.index[-1].strftime("%d.%m.%Y")
@@ -232,6 +246,8 @@ def tara():
                     "Not"            : "Ertesi gün açılışta giriş"
                 })
                 print(f"✅ AL — {sinyal_fiyat} ₺  ({sinyal_tarihi})")
+            elif son_sat:
+                print("-- SAT")
             else:
                 print("— Sinyal yok")
 

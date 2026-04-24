@@ -1,0 +1,37 @@
+Railway Gunluk Tarama Kurulumu
+
+Amac:
+- Her gun aksam 18:45 Turkiye saatinde tarama calissin.
+- Sonucu Telegram grubuna mesaj olarak gondersin.
+
+Kullanilacak dosya:
+- daily_scan_telegram.py
+
+GitHub'a yuklenecek dosyalar:
+- daily_scan_telegram.py
+- tarama.py
+- requirements.txt
+- .env.example
+- .gitignore
+
+Railway Variables:
+- TELEGRAM_BOT_TOKEN
+- TELEGRAM_CHAT_ID
+- SYMBOLS
+- SEND_EMPTY_SCAN_MESSAGE
+
+Railway Start Command:
+python daily_scan_telegram.py
+
+Railway Cron Schedule:
+45 15 * * *
+
+Not:
+- Railway cron UTC ile calisir.
+- 18:45 Turkiye saati = 15:45 UTC.
+- Railway dokumanina gore cron calisma zamani dakikasi dakikasina garanti edilmez, birkac dakika sapabilir.
+
+Mesaj davranisi:
+- AL sinyali varsa liste halinde yollar.
+- AL sinyali yoksa SEND_EMPTY_SCAN_MESSAGE=true ise yine ozet mesaj yollar.
+- false yaparsan sadece sinyal oldugunda mesaj gider.
