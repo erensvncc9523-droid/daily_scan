@@ -88,12 +88,13 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
                 hata_listesi.append(symbol)
                 continue
 
-            al, close = sinyal_hesapla(df)
+            al, sat, close = sinyal_hesapla(df)
             if len(al) < 3:
                 log_info(f"{symbol}: yetersiz veri")
                 continue
 
             son_al = bool(al.iloc[-1])
+            son_sat = bool(sat.iloc[-1])
             if son_al:
                 sinyal_tarihi = df.index[-1].strftime("%d.%m.%Y")
                 sinyal_fiyat = round(float(close.iloc[-1]), 2)
@@ -105,6 +106,8 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
                     }
                 )
                 log_info(f"{symbol}: AL sinyali bulundu @ {sinyal_fiyat}")
+            elif son_sat:
+                log_info(f"{symbol}: SAT")
             else:
                 log_info(f"{symbol}: sinyal yok")
         except Exception as exc:
@@ -117,21 +120,31 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
     now_text = datetime.now().strftime("%d.%m.%Y %H:%M")
     lines = [
-        f"Gunluk tarama tamamlandi: {now_text}",
-        f"Taranan hisse: {total_symbols}",
+        "📊 Gunluk Tarama Tamamlandi",
+        f"🕒 {now_text}",
+        "",
+        f"🔎 Taranan hisse: {total_symbols}",
     ]
 
     if al_listesi:
-        lines.append(f"AL sinyali verenler: {len(al_listesi)}")
+        lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
+        lines.append("")
         for item in al_listesi:
-            lines.append(f"{item['Hisse']}: AL | {item['Kapanis']:.2f} | {item['Sinyal Tarihi']}")
+            lines.append(
+                f"• {item['Hisse']}\n"
+                f"  AL: {item['Kapanis']:.2f}\n"
+                f"  Tarih: {item['Sinyal Tarihi']}"
+            )
+            lines.append("")
     else:
-        lines.append("AL sinyali veren hisse yok")
+        lines.append("")
+        lines.append("⚪ AL sinyali veren hisse yok")
 
     if hata_listesi:
-        lines.append(f"Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
+        lines.append("")
+        lines.append(f"⚠️ Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
 
-    return "\n".join(lines)
+    return "\n".join(lines).strip()
 
 
 def main() -> None:
