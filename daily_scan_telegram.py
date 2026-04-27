@@ -130,11 +130,9 @@ def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols
         lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
         lines.append("")
         for item in al_listesi:
-            lines.append(
-                f"• {item['Hisse']}\n"
-                f"  AL: {item['Kapanis']:.2f}\n"
-                f"  Tarih: {item['Sinyal Tarihi']}"
-            )
+            lines.append(f"• {item['Hisse']}")
+            lines.append(f"  AL: {item['Kapanis']:.2f}")
+            lines.append(f"  Tarih: {item['Sinyal Tarihi']}")
             lines.append("")
     else:
         lines.append("")
