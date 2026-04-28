@@ -9,11 +9,26 @@ from pathlib import Path
 
 import pandas as pd
 
-from tarama import BIST_HISSELER, INTERVAL, PERIOD_1D, USE_HTF, htf_ok, sinyal_hesapla, veri_cek
+from tarama import BIST_HISSELER, INTERVAL, MA_SLOPE_BARS, MA_TREND_LEN, PERIOD_1D, SCRIPT_VERSION as TARAMA_VERSION, USE_HTF, buy_grade_text, htf_ok, sinyal_hesapla, veri_cek
 
 NETWORK_RETRY_COUNT = 3
 NETWORK_RETRY_DELAY_SECONDS = 10
-LOG_PATH = Path("daily_scan_telegram.log")
+
+
+def get_data_dir() -> Path:
+    data_dir = Path(os.getenv("BOT_DATA_DIR", "."))
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir
+    except OSError:
+        fallback = Path(".")
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+DATA_DIR = get_data_dir()
+LOG_PATH = DATA_DIR / "daily_scan_telegram.log"
+SCRIPT_VERSION = "daily_scan_telegram.py 2026-04-28 railway"
 
 logging.basicConfig(
     filename=LOG_PATH,
@@ -83,12 +98,12 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
                 continue
 
             df = veri_cek(ticker, PERIOD_1D, INTERVAL)
-            if df is None or len(df) < 30:
+            if df is None or len(df) < max(30, MA_TREND_LEN + MA_SLOPE_BARS + 5):
                 log_info(f"{symbol}: veri yok")
                 hata_listesi.append(symbol)
                 continue
 
-            al, sat, close = sinyal_hesapla(df)
+            al, sat, close, grade, stop_fiyat, sat_neden = sinyal_hesapla(df)
             if len(al) < 3:
                 log_info(f"{symbol}: yetersiz veri")
                 continue
@@ -98,16 +113,21 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
             if son_al:
                 sinyal_tarihi = df.index[-1].strftime("%d.%m.%Y")
                 sinyal_fiyat = round(float(close.iloc[-1]), 2)
+                stop_seviye = round(float(stop_fiyat.iloc[-1]), 2)
+                al_gucu = buy_grade_text(int(grade.iloc[-1]))
                 al_listesi.append(
                     {
                         "Hisse": symbol,
                         "Kapanis": sinyal_fiyat,
+                        "Stop": stop_seviye,
+                        "AL Gucu": al_gucu,
                         "Sinyal Tarihi": sinyal_tarihi,
                     }
                 )
-                log_info(f"{symbol}: AL sinyali bulundu @ {sinyal_fiyat}")
+                log_info(f"{symbol}: {al_gucu} sinyali bulundu @ {sinyal_fiyat} stop {stop_seviye}")
             elif son_sat:
-                log_info(f"{symbol}: SAT")
+                neden = sat_neden.iloc[-1] if sat_neden.iloc[-1] else "SAT"
+                log_info(f"{symbol}: {neden}")
             else:
                 log_info(f"{symbol}: sinyal yok")
         except Exception as exc:
@@ -120,35 +140,38 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
     now_text = datetime.now().strftime("%d.%m.%Y %H:%M")
     lines = [
-        "📊 Gunluk Tarama Tamamlandi",
-        f"🕒 {now_text}",
+        "Gunluk tarama tamamlandi",
+        f"Saat: {now_text}",
         "",
-        f"🔎 Taranan hisse: {total_symbols}",
+        f"Taranan hisse: {total_symbols}",
     ]
 
     if al_listesi:
-        lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
+        lines.append(f"AL sinyali verenler: {len(al_listesi)}")
         lines.append("")
         for item in al_listesi:
             lines.append(
-                f"• {item['Hisse']}\n"
-                f"  AL: {item['Kapanis']:.2f}\n"
+                f"- {item['Hisse']}\n"
+                f"  {item['AL Gucu']}: {item['Kapanis']:.2f}\n"
+                f"  Stop: {item['Stop']:.2f}\n"
                 f"  Tarih: {item['Sinyal Tarihi']}"
             )
             lines.append("")
     else:
         lines.append("")
-        lines.append("⚪ AL sinyali veren hisse yok")
+        lines.append("AL sinyali veren hisse yok")
 
     if hata_listesi:
         lines.append("")
-        lines.append(f"⚠️ Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
+        lines.append(f"Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
 
     return "\n".join(lines).strip()
 
 
 def main() -> None:
     bot_token, chat_id, symbols, send_empty_message = get_runtime_config()
+    log_info(f"Script version: {SCRIPT_VERSION}")
+    log_info(f"Imported tarama version: {TARAMA_VERSION}")
     log_info(f"Gunluk Railway taramasi basladi. Hisse sayisi: {len(symbols)}")
     al_listesi, hata_listesi = run_daily_scan(symbols)
     message = build_message(al_listesi, hata_listesi, len(symbols))
