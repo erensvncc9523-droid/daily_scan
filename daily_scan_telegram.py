@@ -8,9 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import pandas as pd
-
-from tarama import BIST_HISSELER, INTERVAL, MA_SLOPE_BARS, MA_TREND_LEN, PERIOD_1D, SCRIPT_VERSION as TARAMA_VERSION, USE_HTF, buy_grade_text, htf_ok, sinyal_hesapla, veri_cek
+from tarama import BIST_HISSELER, SCRIPT_VERSION as TARAMA_VERSION, gunluk_al_tara
 
 NETWORK_RETRY_COUNT = 3
 NETWORK_RETRY_DELAY_SECONDS = 10
@@ -89,54 +87,7 @@ def get_runtime_config() -> tuple[str, str, list[str], bool]:
 
 
 def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
-    al_listesi: list[dict] = []
-    hata_listesi: list[str] = []
-
-    for symbol in symbols:
-        ticker = f"{symbol}.IS"
-        try:
-            if USE_HTF and not htf_ok(ticker):
-                log_info(f"{symbol}: HTF engelledi")
-                continue
-
-            df = veri_cek(ticker, PERIOD_1D, INTERVAL)
-            if df is None or len(df) < max(30, MA_TREND_LEN + MA_SLOPE_BARS + 5):
-                log_info(f"{symbol}: veri yok")
-                hata_listesi.append(symbol)
-                continue
-
-            al, sat, close, grade, stop_fiyat, sat_neden = sinyal_hesapla(df)
-            if len(al) < 3:
-                log_info(f"{symbol}: yetersiz veri")
-                continue
-
-            son_al = bool(al.iloc[-1])
-            son_sat = bool(sat.iloc[-1])
-            if son_al:
-                sinyal_tarihi = df.index[-1].strftime("%d.%m.%Y")
-                sinyal_fiyat = round(float(close.iloc[-1]), 2)
-                stop_seviye = round(float(stop_fiyat.iloc[-1]), 2)
-                al_gucu = buy_grade_text(int(grade.iloc[-1]))
-                al_listesi.append(
-                    {
-                        "Hisse": symbol,
-                        "Kapanis": sinyal_fiyat,
-                        "Stop": stop_seviye,
-                        "AL Gucu": al_gucu,
-                        "Sinyal Tarihi": sinyal_tarihi,
-                    }
-                )
-                log_info(f"{symbol}: {al_gucu} sinyali bulundu @ {sinyal_fiyat} stop {stop_seviye}")
-            elif son_sat:
-                neden = sat_neden.iloc[-1] if sat_neden.iloc[-1] else "SAT"
-                log_info(f"{symbol}: {neden}")
-            else:
-                log_info(f"{symbol}: sinyal yok")
-        except Exception as exc:
-            log_error(f"{symbol}: hata - {exc}")
-            hata_listesi.append(symbol)
-
-    return al_listesi, hata_listesi
+    return gunluk_al_tara(symbols, log_info)
 
 
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
@@ -157,9 +108,9 @@ def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols
                 [
                     "--------------------",
                     f"📌 Hisse: {item['Hisse']}",
-                    f"🚦 AL Gücü: {item['AL Gucu']}",
-                    f"💰 Kapanış: {item['Kapanis']:.2f}",
-                    f"🛑 Stop: {item['Stop']:.2f}",
+                    f"🚦 AL Gücü: {item['AL Gücü']}",
+                    f"💰 Kapanış: {item['Kapanış Fiyatı']:.2f}",
+                    f"🛑 Stop: {item['Stop Fiyatı']:.2f}",
                     f"📅 Sinyal Tarihi: {item['Sinyal Tarihi']}",
                     "",
                 ]

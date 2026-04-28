@@ -256,6 +256,68 @@ def sinyal_hesapla(df):
 
     return al_sinyal, sat_sinyal, close, grade_sinyal, stop_fiyat, sat_neden
 
+
+def gunluk_al_tara(symbols=None, log_func=None):
+    """tarama.py ile daily_scan_telegram.py ayni AL sonucunu uretsin."""
+    symbols = BIST_HISSELER if symbols is None else symbols
+    al_listesi = []
+    hata_listesi = []
+    toplam = len(symbols)
+
+    def log(message):
+        if log_func is not None:
+            log_func(message)
+
+    for idx, hisse in enumerate(symbols, 1):
+        ticker = hisse + ".IS"
+        log(f"[{idx:3d}/{toplam}] {hisse}: taraniyor")
+        try:
+            if USE_HTF and not htf_ok(ticker):
+                log(f"{hisse}: HTF engelledi")
+                continue
+
+            df = veri_cek(ticker, PERIOD_1D, INTERVAL)
+            if df is None or len(df) < max(30, MA_TREND_LEN + MA_SLOPE_BARS + 5):
+                log(f"{hisse}: veri yok")
+                hata_listesi.append(hisse)
+                continue
+
+            al, sat, close, grade, stop_fiyat, sat_neden = sinyal_hesapla(df)
+
+            if len(al) < 3:
+                log(f"{hisse}: yetersiz veri")
+                continue
+
+            son_al = bool(al.iloc[-1])
+            son_sat = bool(sat.iloc[-1])
+
+            if son_al:
+                sinyal_tarihi = df.index[-1].strftime("%d.%m.%Y")
+                sinyal_fiyat = round(float(close.iloc[-1]), 2)
+                stop_seviye = round(float(stop_fiyat.iloc[-1]), 2)
+                al_gucu = buy_grade_text(int(grade.iloc[-1]))
+
+                al_listesi.append({
+                    "Hisse": hisse,
+                    "Kapanış Fiyatı": sinyal_fiyat,
+                    "Stop Fiyatı": stop_seviye,
+                    "AL Gücü": al_gucu,
+                    "Sinyal Tarihi": sinyal_tarihi,
+                    "Not": "Ertesi gün açılışta giriş"
+                })
+                log(f"{hisse}: {al_gucu} sinyali bulundu @ {sinyal_fiyat} stop {stop_seviye}")
+            elif son_sat:
+                neden = sat_neden.iloc[-1] if sat_neden.iloc[-1] else "SAT"
+                log(f"{hisse}: {neden}")
+            else:
+                log(f"{hisse}: sinyal yok")
+
+        except Exception as e:
+            log(f"{hisse}: hata - {e}")
+            hata_listesi.append(hisse)
+
+    return al_listesi, hata_listesi
+
 # ─────────────────────────────────────────────
 # ANA TARAMA
 # ─────────────────────────────────────────────
