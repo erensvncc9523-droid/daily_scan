@@ -1,37 +1,31 @@
-Railway Gunluk Tarama Kurulumu
+Railway Gunluk AL Taramasi
 
 Amac:
-- Her gun aksam 18:45 Turkiye saatinde tarama calissin.
-- Sonucu Telegram grubuna mesaj olarak gondersin.
+- Her gun aksam 18:45'te BIST kapanisindan sonra AL taramasi calissin.
+- tarama.py icindeki kosullara uygun hisseleri tarasin.
+- Sonucu Telegram grubuna tek mesaj olarak gondersin.
 
-Kullanilacak dosya:
-- daily_scan_telegram.py
+Railway service:
+- Ayni GitHub reposundan yeni service olustur.
+- Bu service icin Start Command olarak sunu gir:
+  python railway_start.py
+- Not: railway.toml SAT bot icin ayarliysa daily scan service'inde Start Command'i Railway panelinden override et.
 
-GitHub'a yuklenecek dosyalar:
-- daily_scan_telegram.py
-- tarama.py
-- requirements.txt
-- .env.example
-- .gitignore
+Variables:
+- RAILWAY_JOB=daily_scan
+- TELEGRAM_BOT_TOKEN=...
+- TELEGRAM_CHAT_ID=...
+- SYMBOLS bos birakilacak veya hic eklenmeyecek
+- SEND_EMPTY_SCAN_MESSAGE=true
 
-Railway Variables:
-- TELEGRAM_BOT_TOKEN
-- TELEGRAM_CHAT_ID
-- SYMBOLS
-- SEND_EMPTY_SCAN_MESSAGE
-
-Railway Start Command:
-python daily_scan_telegram.py
-
-Railway Cron Schedule:
-45 15 * * *
+Cron Schedule:
+- 45 15 * * *
 
 Not:
 - Railway cron UTC ile calisir.
 - 18:45 Turkiye saati = 15:45 UTC.
-- Railway dokumanina gore cron calisma zamani dakikasi dakikasina garanti edilmez, birkac dakika sapabilir.
-
-Mesaj davranisi:
-- AL sinyali varsa liste halinde yollar.
-- AL sinyali yoksa SEND_EMPTY_SCAN_MESSAGE=true ise yine ozet mesaj yollar.
-- false yaparsan sadece sinyal oldugunda mesaj gider.
+- Bu cron her gun 18:45 Turkiye saatinde calisir.
+- Sadece hafta ici calissin istersen Cron Schedule olarak sunu kullan:
+  45 15 * * 1-5
+- SYMBOLS bos birakilirsa listedeki tum BIST hisseleri taranir.
+- SEND_EMPTY_SCAN_MESSAGE=false yapilirsa AL sinyali yokken Telegram mesaji gitmez.

@@ -6,6 +6,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -13,6 +14,7 @@ from tarama import BIST_HISSELER, INTERVAL, MA_SLOPE_BARS, MA_TREND_LEN, PERIOD_
 
 NETWORK_RETRY_COUNT = 3
 NETWORK_RETRY_DELAY_SECONDS = 10
+TIMEZONE = "Europe/Istanbul"
 
 
 def get_data_dir() -> Path:
@@ -138,32 +140,36 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
 
 
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
-    now_text = datetime.now().strftime("%d.%m.%Y %H:%M")
+    now_text = datetime.now(ZoneInfo(TIMEZONE)).strftime("%d.%m.%Y %H:%M")
     lines = [
-        "Gunluk tarama tamamlandi",
-        f"Saat: {now_text}",
+        "📊 Günlük AL Taraması",
         "",
-        f"Taranan hisse: {total_symbols}",
+        f"🕒 Tarama zamanı: {now_text}",
+        f"🔎 Taranan hisse: {total_symbols}",
+        "",
     ]
 
     if al_listesi:
-        lines.append(f"AL sinyali verenler: {len(al_listesi)}")
+        lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
         lines.append("")
         for item in al_listesi:
-            lines.append(
-                f"- {item['Hisse']}\n"
-                f"  {item['AL Gucu']}: {item['Kapanis']:.2f}\n"
-                f"  Stop: {item['Stop']:.2f}\n"
-                f"  Tarih: {item['Sinyal Tarihi']}"
+            lines.extend(
+                [
+                    "--------------------",
+                    f"📌 Hisse: {item['Hisse']}",
+                    f"🚦 AL Gücü: {item['AL Gucu']}",
+                    f"💰 Kapanış: {item['Kapanis']:.2f}",
+                    f"🛑 Stop: {item['Stop']:.2f}",
+                    f"📅 Sinyal Tarihi: {item['Sinyal Tarihi']}",
+                    "",
+                ]
             )
-            lines.append("")
     else:
-        lines.append("")
-        lines.append("AL sinyali veren hisse yok")
+        lines.append("⚪ AL sinyali veren hisse yok")
 
     if hata_listesi:
         lines.append("")
-        lines.append(f"Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
+        lines.append(f"⚠️ Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
 
     return "\n".join(lines).strip()
 
