@@ -8,7 +8,13 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from tarama import BIST_HISSELER, SCRIPT_VERSION as TARAMA_VERSION, gunluk_al_tara
+from tarama import (
+    ALLOW_DATA_FALLBACK,
+    BIST_HISSELER,
+    DATA_SOURCE,
+    SCRIPT_VERSION as TARAMA_VERSION,
+    gunluk_al_tara,
+)
 
 NETWORK_RETRY_COUNT = 3
 NETWORK_RETRY_DELAY_SECONDS = 10
@@ -28,7 +34,7 @@ def get_data_dir() -> Path:
 
 DATA_DIR = get_data_dir()
 LOG_PATH = DATA_DIR / "daily_scan_telegram.log"
-SCRIPT_VERSION = "daily_scan_telegram.py 2026-04-28 railway"
+SCRIPT_VERSION = "daily_scan_telegram.py 2026-04-29 railway"
 
 logging.basicConfig(
     filename=LOG_PATH,
@@ -52,6 +58,7 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str) -> None:
     payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode("utf-8")
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     last_error = None
+
     for attempt in range(1, NETWORK_RETRY_COUNT + 1):
         try:
             request = urllib.request.Request(url, data=payload, method="POST")
@@ -65,6 +72,7 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str) -> None:
             last_error = exc
             if attempt < NETWORK_RETRY_COUNT:
                 time.sleep(NETWORK_RETRY_DELAY_SECONDS)
+
     raise last_error
 
 
@@ -93,34 +101,36 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
     now_text = datetime.now(ZoneInfo(TIMEZONE)).strftime("%d.%m.%Y %H:%M")
     lines = [
-        "📊 Günlük AL Taraması",
+        "Gunluk AL Taramasi",
         "",
-        f"🕒 Tarama zamanı: {now_text}",
-        f"🔎 Taranan hisse: {total_symbols}",
+        f"Tarama zamani: {now_text}",
+        f"Taranan hisse: {total_symbols}",
+        f"Veri ayari: {DATA_SOURCE} | fallback: {'acik' if ALLOW_DATA_FALLBACK else 'kapali'}",
         "",
     ]
 
     if al_listesi:
-        lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
+        lines.append(f"AL sinyali verenler: {len(al_listesi)}")
         lines.append("")
         for item in al_listesi:
             lines.extend(
                 [
                     "--------------------",
-                    f"📌 Hisse: {item['Hisse']}",
-                    f"🚦 AL Gücü: {item['AL Gücü']}",
-                    f"💰 Kapanış: {item['Kapanış Fiyatı']:.2f}",
-                    f"🛑 Stop: {item['Stop Fiyatı']:.2f}",
-                    f"📅 Sinyal Tarihi: {item['Sinyal Tarihi']}",
+                    f"Hisse: {item['Hisse']}",
+                    f"AL Gucu: {item['AL Gücü']}",
+                    f"Kapanis: {item['Kapanış Fiyatı']:.2f}",
+                    f"Stop: {item['Stop Fiyatı']:.2f}",
+                    f"Sinyal Tarihi: {item['Sinyal Tarihi']}",
+                    f"Veri: {item.get('Veri Kaynagi', 'yok')}",
                     "",
                 ]
             )
     else:
-        lines.append("⚪ AL sinyali veren hisse yok")
+        lines.append("AL sinyali veren hisse yok")
 
     if hata_listesi:
         lines.append("")
-        lines.append(f"⚠️ Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
+        lines.append(f"Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
 
     return "\n".join(lines).strip()
 
@@ -129,7 +139,9 @@ def main() -> None:
     bot_token, chat_id, symbols, send_empty_message = get_runtime_config()
     log_info(f"Script version: {SCRIPT_VERSION}")
     log_info(f"Imported tarama version: {TARAMA_VERSION}")
+    log_info(f"Data source: {DATA_SOURCE} | fallback: {'on' if ALLOW_DATA_FALLBACK else 'off'}")
     log_info(f"Gunluk Railway taramasi basladi. Hisse sayisi: {len(symbols)}")
+
     al_listesi, hata_listesi = run_daily_scan(symbols)
     message = build_message(al_listesi, hata_listesi, len(symbols))
 
