@@ -44,7 +44,7 @@ PROFIT_TRIGGER_PCT = 15.0
 PULLBACK_PCT = 5.0
 MA_TREND_LEN = 50
 MA_SLOPE_BARS = 5
-MIN_MA_SLOPE_PCT = 0.5
+MIN_MA_SLOPE_PCT = 1.5
 
 USE_HTF     = False    # Varsayılan OFF
 USE_VOLUME  = False    # Varsayılan OFF
