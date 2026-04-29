@@ -101,36 +101,38 @@ def run_daily_scan(symbols: list[str]) -> tuple[list[dict], list[str]]:
 def build_message(al_listesi: list[dict], hata_listesi: list[str], total_symbols: int) -> str:
     now_text = datetime.now(ZoneInfo(TIMEZONE)).strftime("%d.%m.%Y %H:%M")
     lines = [
-        "Gunluk AL Taramasi",
+        "📊 Günlük AL Taraması",
+        "━━━━━━━━━━━━━━",
         "",
-        f"Tarama zamani: {now_text}",
-        f"Taranan hisse: {total_symbols}",
-        f"Veri ayari: {DATA_SOURCE} | fallback: {'acik' if ALLOW_DATA_FALLBACK else 'kapali'}",
+        f"🕒 Tarama zamanı: {now_text}",
+        f"🔎 Taranan hisse: {total_symbols}",
+        f"📡 Veri ayarı: {DATA_SOURCE}",
+        f"🛟 Fallback: {'açık' if ALLOW_DATA_FALLBACK else 'kapalı'}",
         "",
     ]
 
     if al_listesi:
-        lines.append(f"AL sinyali verenler: {len(al_listesi)}")
+        lines.append(f"🟢 AL sinyali verenler: {len(al_listesi)}")
         lines.append("")
         for item in al_listesi:
             lines.extend(
                 [
-                    "--------------------",
-                    f"Hisse: {item['Hisse']}",
-                    f"AL Gucu: {item['AL Gücü']}",
-                    f"Kapanis: {item['Kapanış Fiyatı']:.2f}",
-                    f"Stop: {item['Stop Fiyatı']:.2f}",
-                    f"Sinyal Tarihi: {item['Sinyal Tarihi']}",
-                    f"Veri: {item.get('Veri Kaynagi', 'yok')}",
+                    "━━━━━━━━━━━━━━",
+                    f"📌 Hisse: {item['Hisse']}",
+                    f"🚦 AL Gücü: {item['AL Gücü']}",
+                    f"💰 Kapanış: {item['Kapanış Fiyatı']:.2f}",
+                    f"🛑 Stop: {item['Stop Fiyatı']:.2f}",
+                    f"📅 Sinyal tarihi: {item['Sinyal Tarihi']}",
+                    f"📡 Veri: {item.get('Veri Kaynagi', 'yok')}",
                     "",
                 ]
             )
     else:
-        lines.append("AL sinyali veren hisse yok")
+        lines.append("⚪ AL sinyali veren hisse yok")
 
     if hata_listesi:
         lines.append("")
-        lines.append(f"Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
+        lines.append(f"⚠️ Hata/veri sorunu: {', '.join(hata_listesi[:15])}")
 
     return "\n".join(lines).strip()
 
