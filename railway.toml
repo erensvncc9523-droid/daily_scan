@@ -1,0 +1,4 @@
+[deploy]
+startCommand = "python railway_start.py"
+cronSchedule = "*/15 7-15 * * 1-5"
+restartPolicyType = "NEVER"

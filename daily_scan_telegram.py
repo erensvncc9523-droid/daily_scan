@@ -34,7 +34,7 @@ def get_data_dir() -> Path:
 
 DATA_DIR = get_data_dir()
 LOG_PATH = DATA_DIR / "daily_scan_telegram.log"
-SCRIPT_VERSION = "daily_scan_telegram.py 2026-04-29 railway"
+SCRIPT_VERSION = "daily_scan_telegram.py 2026-05-10 railway"
 
 logging.basicConfig(
     filename=LOG_PATH,
