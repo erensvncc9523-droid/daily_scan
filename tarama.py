@@ -31,7 +31,7 @@ except ImportError:
     TvDatafeed = None
     Interval = None
 
-SCRIPT_VERSION = "tarama.py 2026-04-29 ESv2"
+SCRIPT_VERSION = "tarama.py 2026-05-10 ESv2"
 
 # ─────────────────────────────────────────────
 # PARAMETRELER
@@ -63,13 +63,12 @@ PULLBACK_PCT = 5.0
 MA_TREND_LEN = 20
 MA_SLOPE_BARS = 5
 MIN_MA_SLOPE_PCT = 0.5
-MIN_VOLUME_ABOVE_AVG_PCT = 5.0
+SIGNAL_VOLUME_MULTIPLIER = 1.5
 ADX_LEN = 14
 ADX_SLOPE_BARS = 3
 MIN_ADX_RISE_PCT = 0.8
 
 USE_HTF     = False    # Varsayılan OFF
-USE_VOLUME_ABOVE_AVG = False
 USE_TREND   = True     # MA20 slope-only filtresi
 USE_ADX     = True
 # ─────────────────────────────────────────────
@@ -359,11 +358,11 @@ def sinyal_hesapla(df):
     ma_slope_ok = ma_trend >= ma_trend.shift(MA_SLOPE_BARS) * (1.0 + MIN_MA_SLOPE_PCT / 100.0)
     trend_ok = ma_slope_ok if USE_TREND else pd.Series(True, index=close.index)
     vol_avg = sma(vol, VOL_LEN)
-    vol_ok = (vol >= vol_avg * (1.0 + MIN_VOLUME_ABOVE_AVG_PCT / 100.0)) if USE_VOLUME_ABOVE_AVG else pd.Series(True, index=close.index)
+    signal_vol_ok = (vol.shift(1) > vol_avg.shift(1)) & (vol >= vol_avg * SIGNAL_VOLUME_MULTIPLIER)
     adx = adx_calc(high, low, close, ADX_LEN)
     adx_ok = ((adx.shift(ADX_SLOPE_BARS) > 0) & (adx >= adx.shift(ADX_SLOPE_BARS) * (1.0 + MIN_ADX_RISE_PCT / 100.0))) if USE_ADX else pd.Series(True, index=close.index)
     setup_repeated = c1.shift(1).fillna(False) & c2.shift(1).fillna(False) & c3.shift(1).fillna(False)
-    long_raw = c1 & c2 & c3 & trend_ok & vol_ok & adx_ok & ~setup_repeated
+    long_raw = c1 & c2 & c3 & trend_ok & signal_vol_ok & adx_ok & ~setup_repeated
     sat_raw = (K < ema_k) & (K.shift(1) >= ema_k.shift(1))
 
     cross_level = valuewhen(cross3_raw, K)
@@ -489,7 +488,7 @@ def tara():
     print(f"  Tarih  : {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     print(f"  Veri   : {DATA_SOURCE} | fallback: {'ACIK' if ALLOW_DATA_FALLBACK else 'KAPALI'}")
     print(f"  HTF    : {'AÇIK' if USE_HTF else 'KAPALI'}")
-    print(f"  Hacim  : {'AÇIK' if USE_VOLUME_ABOVE_AVG else 'KAPALI'} | {VOL_LEN} ortalama üstü >= %{MIN_VOLUME_ABOVE_AVG_PCT}")
+    print(f"  Hacim  : ZORUNLU | onceki mum > {VOL_LEN} ort, son mum >= {SIGNAL_VOLUME_MULTIPLIER}x ort")
     print(f"  MA20   : {'AÇIK' if USE_TREND else 'KAPALI'} | {MA_SLOPE_BARS} bar >= %{MIN_MA_SLOPE_PCT}")
     print(f"  ADX    : {'AÇIK' if USE_ADX else 'KAPALI'} | {ADX_SLOPE_BARS} bar >= %{MIN_ADX_RISE_PCT}")
     print(f"  Hisse  : {len(BIST_HISSELER)} adet")

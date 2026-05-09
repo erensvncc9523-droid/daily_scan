@@ -11,7 +11,7 @@ JOBS = {
 
 
 def main() -> int:
-    job = os.getenv("RAILWAY_JOB", "telegram_sat_bot").strip().lower()
+    job = os.getenv("RAILWAY_JOB", "daily_scan").strip().lower()
     command = JOBS.get(job)
     if command is None:
         valid_jobs = ", ".join(sorted(JOBS))
