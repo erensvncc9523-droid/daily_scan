@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.env
 telegram_bot_config.json
 telegram_bot_state.json
 telegram_sat_bot.log
