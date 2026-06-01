@@ -33,6 +33,7 @@ def get_data_dir() -> Path:
 
 
 DATA_DIR = get_data_dir()
+CONFIG_PATH = Path("telegram_bot_config.json")
 LOG_PATH = DATA_DIR / "daily_scan_telegram.log"
 SCRIPT_VERSION = "daily_scan_telegram.py 2026-05-10 railway"
 
@@ -76,21 +77,53 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str) -> None:
     raise last_error
 
 
+def parse_bool(value: object, default: bool) -> bool:
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text == "":
+        return default
+    return text not in {"0", "false", "hayir", "no", "off"}
+
+
+def load_local_config() -> dict:
+    if not CONFIG_PATH.exists():
+        return {}
+    try:
+        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{CONFIG_PATH} okunamadi: {exc}") from exc
+
+
 def get_runtime_config() -> tuple[str, str, list[str], bool]:
+    local_config = load_local_config()
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     symbols_raw = os.getenv("SYMBOLS", "").strip()
-    send_empty_raw = os.getenv("SEND_EMPTY_SCAN_MESSAGE", "true").strip().lower()
+    send_empty_raw = os.getenv("SEND_EMPTY_SCAN_MESSAGE")
 
-    if not bot_token or not chat_id:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN ve TELEGRAM_CHAT_ID Railway Variables icinde tanimli olmali.")
+    if not bot_token:
+        bot_token = str(local_config.get("telegram_bot_token", "")).strip()
+    if not chat_id:
+        chat_id = str(local_config.get("telegram_chat_id", "")).strip()
+
+    if (
+        not bot_token
+        or bot_token == "BURAYA_BOT_TOKEN"
+        or not chat_id
+        or chat_id == "BURAYA_CHAT_ID"
+    ):
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID Railway Variables icinde veya "
+            "telegram_bot_config.json dosyasinda tanimli olmali."
+        )
 
     if symbols_raw:
         symbols = [part.strip().upper() for part in symbols_raw.split(",") if part.strip()]
     else:
         symbols = BIST_HISSELER
 
-    send_empty_message = send_empty_raw not in {"0", "false", "hayir", "no"}
+    send_empty_message = parse_bool(send_empty_raw, True)
     return bot_token, chat_id, symbols, send_empty_message
 
 

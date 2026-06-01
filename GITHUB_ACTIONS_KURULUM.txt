@@ -1,0 +1,28 @@
+GitHub Actions Gunluk AL Taramasi
+
+Amac:
+- tarama.py icindeki gunluk taramayi her aksam 18:45 Turkiye saatinde calistirir.
+- Sonucu daily_scan_telegram.py ile Telegram'a tek mesaj olarak gonderir.
+- AL sinyali bulunmasa bile o gunun tarama ozeti gider.
+
+Kurulum:
+1. Bu klasoru GitHub reposuna push et.
+2. GitHub reposunda Settings > Secrets and variables > Actions ekranina gir.
+3. New repository secret ile su iki secret'i ekle:
+   TELEGRAM_BOT_TOKEN=...
+   TELEGRAM_CHAT_ID=...
+4. Actions sekmesine gir.
+5. Daily BIST Telegram Scan workflow'unu sec.
+6. Run workflow ile bir kez elle calistirip Telegram mesajini kontrol et.
+
+Zamanlama:
+- Workflow dosyasi: .github/workflows/daily-bist-scan.yml
+- cron: 45 18 * * *
+- timezone: Europe/Istanbul
+- Haftanin her gunu saat 18:45'te calisir.
+
+Notlar:
+- Workflow GitHub reposunun varsayilan branch'i uzerinde bulunmalidir.
+- GitHub Actions yogunluk durumunda zamanlanmis calismayi bir miktar gec baslatabilir.
+- Yalnizca hafta ici calismasi istenirse cron degerini "45 18 * * 1-5" yap.
+- Secret degerlerini dosyaya yazma ve telegram_bot_config.json dosyasini GitHub'a yukleme.
