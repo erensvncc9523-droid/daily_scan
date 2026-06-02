@@ -68,7 +68,7 @@ ADX_LEN = 14
 ADX_SLOPE_BARS = 3
 MIN_ADX_RISE_PCT = 0.8
 
-USE_SIGNAL_VOLUME_FILTER = True
+USE_SIGNAL_VOLUME_FILTER = False
 USE_HTF     = False    # Varsayılan OFF
 USE_TREND   = True     # MA20 slope-only filtresi
 USE_ADX     = True
