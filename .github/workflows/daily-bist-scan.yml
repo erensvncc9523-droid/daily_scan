@@ -31,6 +31,6 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SEND_EMPTY_SCAN_MESSAGE: "true"
+          SEND_EMPTY_SCAN_MESSAGE: "false"
           PYTHONUNBUFFERED: "1"
         run: python daily_scan_telegram.py
