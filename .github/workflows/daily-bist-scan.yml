@@ -1,9 +1,7 @@
 name: Daily BIST Telegram Scan
 
 on:
-  schedule:
-    - cron: "45 18 * * *"
-      timezone: "Europe/Istanbul"
+  
   workflow_dispatch:
 
 permissions:
